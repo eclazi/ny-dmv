@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
-	"fmt"
-	"flag"
 	"time"
 )
 
@@ -50,11 +50,11 @@ func getSiteData() (*SiteData, error) {
 //https://publicwebsiteapi.nydmvreservation.com/api/LocationsByCounty?serviceTypeId=203&startDate=2025-03-27T00:41:58.040Z
 
 type LocationsByCounty = []struct {
-		County string
+	County    string
 		Locations []struct {
-			Id		int
-			Name	string
-			City	string
+		Id   int
+		Name string
+		City string
 		}
 	}
 
