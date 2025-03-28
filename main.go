@@ -112,6 +112,14 @@ func getAvailableLocationDates(locationId int, typeId int, startDate string) (*A
 	return &result, nil
 }
 
+func getAvailableLocationDatesFromNow(locationId int, typeId int) (*AvailableLocationDates, error) {
+	result, err := getAvailableLocationDates(locationId, typeId, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func main() {
 	serviceTypeId := flag.Int("serviceTypeId", 0, "Service Type ID")
 	locationId := flag.Int("locationId", 0, "Location ID")
@@ -146,8 +154,7 @@ func main() {
 		}
 	} else {
 		// List available dates
-		startDate := time.Now().Format(time.RFC3339)
-		dates, err := getAvailableLocationDates(*locationId, *serviceTypeId, startDate)
+		dates, err := getAvailableLocationDatesFromNow(*locationId, *serviceTypeId)
 		if err != nil {
 			panic(err)
 		}
