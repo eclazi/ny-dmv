@@ -51,12 +51,12 @@ func getSiteData() (*SiteData, error) {
 
 type LocationsByCounty = []struct {
 	County    string
-		Locations []struct {
+	Locations []struct {
 		Id   int
 		Name string
 		City string
-		}
 	}
+}
 
 func getLocationsByCounty(serviceTypeId int, startDate string) (*LocationsByCounty, error) {
 	resp, err := http.Get("https://publicwebsiteapi.nydmvreservation.com/api/LocationsByCounty?serviceTypeId=" + strconv.Itoa(serviceTypeId) + "&startDate=" + startDate)
@@ -120,11 +120,25 @@ func getAvailableLocationDatesFromNow(locationId int, typeId int) (*AvailableLoc
 	return result, nil
 }
 
+func getNextAvailableAppointment(locationId int, typeId int) (*time.Time, error) {
+	locs, err := getAvailableLocationDatesFromNow(locationId, typeId)
+	if err != nil {
+		return nil, err
+	}
+
+	loc, _ := time.LoadLocation("America/New_York")
+	result, err := time.ParseInLocation("2006-01-02T15:04:05", locs.FirstAvailableDate, loc)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func main() {
 	serviceTypeId := flag.Int("serviceTypeId", 0, "Service Type ID")
 	locationId := flag.Int("locationId", 0, "Location ID")
 	flag.Parse()
-	
+
 	if *serviceTypeId == 0 {
 		// List available services
 		siteData, err := getSiteData()
@@ -154,12 +168,12 @@ func main() {
 		}
 	} else {
 		// List available dates
-		dates, err := getAvailableLocationDatesFromNow(*locationId, *serviceTypeId)
+		t, err := getNextAvailableAppointment(*locationId, *serviceTypeId)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Println("First available date:", dates.FirstAvailableDate)
+		fmt.Println("First available date:", t.Format(time.RFC1123))
 	}
 
 }
