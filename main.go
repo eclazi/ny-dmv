@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
+
+	"github.com/urfave/cli/v3"
 )
 
 //type SiteData = map[string]interface{}
@@ -58,7 +61,8 @@ type LocationsByCounty = []struct {
 	}
 }
 
-func getLocationsByCounty(serviceTypeId int, startDate string) (*LocationsByCounty, error) {
+func getLocationsByCounty(serviceTypeId int) (*LocationsByCounty, error) {
+	startDate := time.Now().Format(time.RFC3339)
 	resp, err := http.Get("https://publicwebsiteapi.nydmvreservation.com/api/LocationsByCounty?serviceTypeId=" + strconv.Itoa(serviceTypeId) + "&startDate=" + startDate)
 	if err != nil {
 		return nil, err
@@ -134,46 +138,102 @@ func getNextAvailableAppointment(locationId int, typeId int) (*time.Time, error)
 	return &result, nil
 }
 
-func main() {
-	serviceTypeId := flag.Int("serviceTypeId", 0, "Service Type ID")
-	locationId := flag.Int("locationId", 0, "Location ID")
-	flag.Parse()
-
-	if *serviceTypeId == 0 {
-		// List available services
-		siteData, err := getSiteData()
-		if err != nil {
-			panic(err)
-		}
-
-		for _, serviceType := range siteData.ServiceTypes {
-			fmt.Println(serviceType.CategoryDescription)
-			for _, service := range serviceType.ServiceTypes {
-				fmt.Println("    ", service.TypeId, service.Name)
-			}
-		}
-	} else if *locationId == 0 {
-		// List available locations
-		startDate := time.Now().Format(time.RFC3339)
-		locations, err := getLocationsByCounty(*serviceTypeId, startDate)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, county := range *locations {
-			fmt.Println(county.County)
-			for _, location := range county.Locations {
-				fmt.Println("    ", location.Id, location.Name, location.City)
-			}
-		}
-	} else {
-		// List available dates
-		t, err := getNextAvailableAppointment(*locationId, *serviceTypeId)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println("First available date:", t.Format(time.RFC1123))
+func printServices() {
+	siteData, err := getSiteData()
+	if err != nil {
+		panic(err)
 	}
 
+	for _, serviceType := range siteData.ServiceTypes {
+		fmt.Println(serviceType.CategoryDescription)
+		for _, service := range serviceType.ServiceTypes {
+			fmt.Println("    ", service.TypeId, service.Name)
+		}
+	}
+}
+
+func printLocations(serviceType int) {
+	loc, err := getLocationsByCounty(serviceType)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, county := range *loc {
+		fmt.Println(county.County)
+		for _, location := range county.Locations {
+			fmt.Println("    ", location.Id, location.Name, location.City)
+		}
+	}
+}
+
+func earliestAppointment(service int, locations []int) (*time.Time, int) {
+	var earliestTime time.Time
+	var earliestLoc int
+
+	for _, loc := range locations {
+		apt, err := getNextAvailableAppointment(loc, service)
+		if err != nil {
+			panic(err)
+		}
+
+		if earliestTime.IsZero() || apt.Before(earliestTime) {
+			earliestTime = *apt
+			earliestLoc = loc
+		}
+	}
+
+	return &earliestTime, earliestLoc
+}
+
+func main() {
+
+	cmd := &cli.Command{
+		Commands: []*cli.Command{
+			{
+				Name: "services",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					printServices()
+					return nil
+				},
+			},
+			{
+				Name: "locations",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					v, err := strconv.Atoi(cmd.Args().First())
+					if err != nil {
+						panic(err)
+					}
+
+					printLocations(v)
+					return nil
+				},
+			},
+			{
+				Name: "appointment",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+
+					service, err := strconv.Atoi(cmd.Args().First())
+					if err != nil {
+						panic(err)
+					}
+
+					var locations []int
+					for _, arg := range cmd.Args().Slice()[1:] {
+						if v, err := strconv.Atoi(arg); err == nil {
+							locations = append(locations, v)
+						}
+					}
+
+					earliest, earliestLoc := earliestAppointment(service, locations)
+					fmt.Println(earliestLoc, " - ", earliest.Format(time.RFC1123))
+
+					return nil
+				},
+			},
+		},
+	}
+
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		panic(err)
+	}
 }
