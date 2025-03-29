@@ -52,13 +52,15 @@ func getSiteData() (*SiteData, error) {
 
 //https://publicwebsiteapi.nydmvreservation.com/api/LocationsByCounty?serviceTypeId=203&startDate=2025-03-27T00:41:58.040Z
 
+type Location struct {
+	Id   int
+	Name string
+	City string
+}
+
 type LocationsByCounty = []struct {
 	County    string
-	Locations []struct {
-		Id   int
-		Name string
-		City string
-	}
+	Locations []Location
 }
 
 func getLocationsByCounty(serviceTypeId int) (*LocationsByCounty, error) {
@@ -152,6 +154,22 @@ func printServices() {
 	}
 }
 
+func collectLocations(serviceType int) map[int]string {
+	locs, err := getLocationsByCounty(serviceType)
+	if err != nil {
+		panic(err)
+	}
+
+	result := make(map[int]string)
+	for _, county := range *locs {
+		for _, loc := range county.Locations {
+			result[loc.Id] = loc.Name
+		}
+	}
+
+	return result
+}
+
 func printLocations(serviceType int) {
 	loc, err := getLocationsByCounty(serviceType)
 	if err != nil {
@@ -183,6 +201,11 @@ func earliestAppointment(service int, locations []int) (*time.Time, int) {
 	}
 
 	return &earliestTime, earliestLoc
+}
+
+func getLocationName(locationId int, serviceId int) string {
+	nameMap := collectLocations(serviceId)
+	return nameMap[locationId]
 }
 
 func main() {
@@ -225,7 +248,9 @@ func main() {
 					}
 
 					earliest, earliestLoc := earliestAppointment(service, locations)
-					fmt.Println(earliestLoc, " - ", earliest.Format(time.RFC1123))
+
+					locName := getLocationName(earliestLoc, service)
+					fmt.Println(locName, " - ", earliest.Format(time.RFC1123))
 
 					return nil
 				},
