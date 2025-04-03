@@ -60,7 +60,8 @@ func printAppointments(locationIds []int64, serviceId int64) {
 	})
 
 	for _, appointment := range appointments {
-		fmt.Println(appointment.DateTime.Format("2006-01-02 15:04:05"), ": ", locationNames[appointment.LocationId], ", ", appointment.SlotId, ", ", appointment.Duration, ", ", appointment.ServiceId)
+		fmt.Printf("%v - %s - Location ID : %d,  Slot ID : %d, Duration : %d\n", appointment.DateTime.Format("2006-01-02 15:04:05"),
+			locationNames[appointment.LocationId], appointment.LocationId, appointment.SlotId, appointment.Duration)
 	}
 }
 func main() {
