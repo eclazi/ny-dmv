@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	baseURL                = "https://publicwebsiteapi.nydmvreservation.com/api/"
+	baseURL = "https://publicwebsiteapi.nydmvreservation.com/api/"
 )
 
 type Service struct {
@@ -64,8 +64,8 @@ func (c *Client) GetServices() ([]Service, error) {
 	return services, nil
 }
 
-func (c *Client) GetLocations(service *Service) ([]Location, error) {
-	resp, err := http.Get(baseURL + "LocationsByCounty" + "?serviceTypeId=" + fmt.Sprint(service.Id))
+func (c *Client) GetLocations(serviceId int) ([]Location, error) {
+	resp, err := http.Get(baseURL + "LocationsByCounty" + "?serviceTypeId=" + fmt.Sprint(serviceId))
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +88,8 @@ func (c *Client) GetLocations(service *Service) ([]Location, error) {
 	return locations, nil
 }
 
-func (c *Client) GetAppointments(location *Location, service *Service) ([]Appointment, error) {
-	resp, err := http.Get(baseURL + "AvailableLocationDates" + "?locationId=" + fmt.Sprint(location.Id) + "&typeId=" + fmt.Sprint(service.Id) + "&startDate=" + time.Now().Format(time.RFC3339))
+func (c *Client) GetAppointments(locationId int, serviceId int) ([]Appointment, error) {
+	resp, err := http.Get(baseURL + "AvailableLocationDates" + "?locationId=" + fmt.Sprint(locationId) + "&typeId=" + fmt.Sprint(serviceId) + "&startDate=" + time.Now().Format(time.RFC3339))
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (c *Client) GetAppointments(location *Location, service *Service) ([]Appoin
 				DateTime:   tim,
 				SlotId:     availableTimeSlot.SlotId,
 				Duration:   availableTimeSlot.Duration,
-				ServiceId:  service.Id,
+				ServiceId:  serviceId,
 			})
 		}
 	}

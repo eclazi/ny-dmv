@@ -20,7 +20,7 @@ func TestNewClient(t *testing.T) {
 	fmt.Println(services)
 
 	service := services[0]
-	locations, err := client.GetLocations(&service)
+	locations, err := client.GetLocations(service.Id)
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,7 +31,7 @@ func TestNewClient(t *testing.T) {
 
 	fmt.Println(locations)
 
-	appointment, err := client.GetAppointments(&locations[0], &service)
+	appointment, err := client.GetAppointments(locations[0].Id, service.Id)
 	if err != nil {
 		t.Error(err)
 	}
