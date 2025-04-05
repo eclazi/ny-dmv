@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"time"
@@ -117,4 +118,42 @@ func (c *Client) GetAppointments(locationId int, serviceId int) ([]Appointment, 
 	}
 
 	return appointments, nil
+}
+
+func (c *Client) BookAppointment(appointment Appointment, firstName string, lastName string, email string, cellPhone string) error {
+	payload := booking{
+		ServiceTypeID:   appointment.ServiceId,
+		ServiceTypeID2:  nil,
+		BookingDateTime: appointment.DateTime.Format(time.RFC3339),
+		BookingDuration: appointment.Duration,
+		FirstName:       firstName,
+		LastName:        lastName,
+		Email:           email,
+		CellPhone:       cellPhone,
+		SendSms:         cellPhone != "",
+		SiteID:          appointment.LocationId,
+		SlotID:          appointment.SlotId,
+		DateOfBirth:     nil,
+	}
+
+	var data bytes.Buffer
+	n, err := writePayload(payload, &data)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("no data written")
+	}
+
+	resp, err := http.Post(baseURL+"Booking", "application/json", &data)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return nil
 }

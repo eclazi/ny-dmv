@@ -64,9 +64,46 @@ func printAppointments(locationIds []int64, serviceId int64) {
 			locationNames[appointment.LocationId], appointment.LocationId, appointment.SlotId, appointment.Duration)
 	}
 }
+
+func bookAppointment(locationId int64, serviceId int64, slotId int64, firstName string, lastName string, email string, phone string) {
+	client := NewClient()
+	apps, err := client.GetAppointments(int(locationId), int(serviceId))
+	if err != nil {
+		panic(err)
+	}
+
+	// Find the appointment with the given slot ID
+	var appointment Appointment
+	for _, app := range apps {
+		if app.SlotId == int(slotId) {
+			appointment = app
+			break
+		}
+	}
+
+	if appointment.SlotId == 0 {
+		fmt.Println("No appointment found with the given slot ID.")
+		return
+	}
+
+	if err := client.BookAppointment(appointment, firstName, lastName, email, phone); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Appointment booked successfully!")
+}
+
 func main() {
 	var serviceId int64
 	var locationIds []int64
+
+	var locationId int64
+	var slotId int64
+	var firstName string
+	var lastName string
+	var email string
+	var phone string
+
 	cmd := &cli.Command{
 		Commands: []*cli.Command{
 			{
@@ -109,6 +146,57 @@ func main() {
 				},
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					printAppointments(locationIds, serviceId)
+					return nil
+				},
+			},
+			{
+				Name: "book",
+				Arguments: []cli.Argument{
+					&cli.IntArg{
+						Name:        "serviceId",
+						Destination: &serviceId,
+						Min:         1,
+						Max:         1,
+					},
+					&cli.IntArg{
+						Name:        "locationId",
+						Destination: &locationId,
+						Min:         1,
+						Max:         1,
+					},
+					&cli.IntArg{
+						Name:        "slotId",
+						Destination: &slotId,
+						Min:         1,
+						Max:         1,
+					},
+					&cli.StringArg{
+						Name:        "firstName",
+						Destination: &firstName,
+						Min:         1,
+						Max:         1,
+					},
+					&cli.StringArg{
+						Name:        "lastName",
+						Destination: &lastName,
+						Min:         1,
+						Max:         1,
+					},
+					&cli.StringArg{
+						Name:        "email",
+						Destination: &email,
+						Min:         1,
+						Max:         1,
+					},
+					&cli.StringArg{
+						Name:        "phone",
+						Destination: &phone,
+						Min:         1,
+						Max:         1,
+					},
+				},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					bookAppointment(locationId, serviceId, slotId, firstName, lastName, email, phone)
 					return nil
 				},
 			},
