@@ -11,7 +11,7 @@
             "request": "launch",
             "mode": "auto",
             "args": [ "services" ],
-            "program": "."
+            "program": "${workspaceFolder}/cmd/cli/main.go"
         },
         
         {
@@ -20,7 +20,7 @@
             "request": "launch",
             "mode": "auto",
             "args": [ "locations", "203" ],
-            "program": "."
+            "program": "${workspaceFolder}/cmd/cli/main.go"
         },
 
         {
@@ -29,7 +29,7 @@
             "request": "launch",
             "mode": "auto",
             "args": [ "appointments", "203", "12", "25", "26" ],
-            "program": "."
+            "program": "${workspaceFolder}/cmd/cli/main.go"
         }
 
     ]

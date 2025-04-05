@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dmv-ny/pkg/dmvapi"
 	"fmt"
 	"os"
 	"sort"
@@ -10,7 +11,7 @@ import (
 )
 
 func printServices() {
-	client := NewClient()
+	client := dmvapi.NewClient()
 	services, err := client.GetServices()
 	if err != nil {
 		panic(err)
@@ -20,9 +21,8 @@ func printServices() {
 		fmt.Println(service.Id, ": ", service.Name)
 	}
 }
-
 func printLocations(serviceId int64) {
-	client := NewClient()
+	client := dmvapi.NewClient()
 	locations, err := client.GetLocations(int(serviceId))
 	if err != nil {
 		panic(err)
@@ -34,7 +34,7 @@ func printLocations(serviceId int64) {
 }
 
 func printAppointments(locationIds []int64, serviceId int64) {
-	client := NewClient()
+	client := dmvapi.NewClient()
 
 	locations, err := client.GetLocations(int(serviceId))
 	if err != nil {
@@ -46,7 +46,7 @@ func printAppointments(locationIds []int64, serviceId int64) {
 		locationNames[location.Id] = location.Name
 	}
 
-	var appointments []Appointment
+	var appointments []dmvapi.Appointment
 	for _, locationId := range locationIds {
 		appts, err := client.GetAppointments(int(locationId), int(serviceId))
 		if err != nil {
@@ -66,14 +66,14 @@ func printAppointments(locationIds []int64, serviceId int64) {
 }
 
 func bookAppointment(locationId int64, serviceId int64, slotId int64, firstName string, lastName string, email string, phone string) {
-	client := NewClient()
+	client := dmvapi.NewClient()
 	apps, err := client.GetAppointments(int(locationId), int(serviceId))
 	if err != nil {
 		panic(err)
 	}
 
 	// Find the appointment with the given slot ID
-	var appointment Appointment
+	var appointment dmvapi.Appointment
 	for _, app := range apps {
 		if app.SlotId == int(slotId) {
 			appointment = app
@@ -92,7 +92,6 @@ func bookAppointment(locationId int64, serviceId int64, slotId int64, firstName 
 
 	fmt.Println("Appointment booked successfully!")
 }
-
 func main() {
 	var serviceId int64
 	var locationIds []int64

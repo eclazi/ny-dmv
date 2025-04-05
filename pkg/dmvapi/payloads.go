@@ -1,4 +1,4 @@
-package main
+package dmvapi
 
 import (
 	"encoding/json"

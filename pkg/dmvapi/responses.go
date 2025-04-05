@@ -1,4 +1,4 @@
-package main
+package dmvapi
 
 import (
 	"encoding/json"
@@ -27,7 +27,7 @@ type LocationsByCountyResponse = []struct {
 
 type availableLocationDatesResponse = struct {
 	LocationAvailabilityDates []struct {
-		LocationId int
+		LocationId         int
 		AvailableTimeSlots []struct {
 			StartDateTime string
 			Duration      int
