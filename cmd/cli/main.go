@@ -10,48 +10,58 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// handleError provides consistent error handling throughout the application
+func handleError(err error, message string) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", message, err)
+		os.Exit(1)
+	}
+}
+
 func printServices() {
 	client := dmvapi.NewClient()
 	services, err := client.GetServices()
-	if err != nil {
-		panic(err)
-	}
+	handleError(err, "Failed to get services")
 
 	for _, service := range services {
-		fmt.Println(service.Id, ": ", service.Name)
+		fmt.Printf("%d: %s\n", service.Id, service.Name)
 	}
 }
+
 func printLocations(serviceId int64) {
 	client := dmvapi.NewClient()
 	locations, err := client.GetLocations(int(serviceId))
-	if err != nil {
-		panic(err)
-	}
+	handleError(err, "Failed to get locations")
 
 	for _, location := range locations {
-		fmt.Println(location.Id, ": ", location.Name, ", ", location.City)
+		fmt.Printf("%d: %s, %s\n", location.Id, location.Name, location.City)
 	}
+}
+
+// getLocationNames retrieves and maps location IDs to their names
+func getLocationNames(client *dmvapi.Client, serviceId int) (map[int]string, error) {
+	locations, err := client.GetLocations(serviceId)
+	if err != nil {
+		return nil, err
+	}
+
+	locationNames := make(map[int]string, len(locations))
+	for _, location := range locations {
+		locationNames[location.Id] = location.Name
+	}
+	return locationNames, nil
 }
 
 func printAppointments(locationIds []int64, serviceId int64) {
 	client := dmvapi.NewClient()
 
-	locations, err := client.GetLocations(int(serviceId))
-	if err != nil {
-		panic(err)
-	}
-
-	locationNames := make(map[int]string, 0)
-	for _, location := range locations {
-		locationNames[location.Id] = location.Name
-	}
+	locationNames, err := getLocationNames(client, int(serviceId))
+	handleError(err, "Failed to get location names")
 
 	var appointments []dmvapi.Appointment
 	for _, locationId := range locationIds {
 		appts, err := client.GetAppointments(int(locationId), int(serviceId))
-		if err != nil {
-			panic(err)
-		}
+		handleError(err, fmt.Sprintf("Failed to get appointments for location %d", locationId))
 		appointments = append(appointments, appts...)
 	}
 
@@ -59,49 +69,50 @@ func printAppointments(locationIds []int64, serviceId int64) {
 		return appointments[i].DateTime.Before(appointments[j].DateTime)
 	})
 
-	for _, appointment := range appointments {
-		fmt.Printf("%v - %s - Location ID : %d,  Slot ID : %d, Duration : %d\n", appointment.DateTime.Format("2006-01-02 15:04:05"),
-			locationNames[appointment.LocationId], appointment.LocationId, appointment.SlotId, appointment.Duration)
+	for _, appt := range appointments {
+		fmt.Printf("%v - %s - Location ID: %d, Slot ID: %d, Duration: %d\n",
+			appt.DateTime.Format("2006-01-02 15:04:05"),
+			locationNames[appt.LocationId],
+			appt.LocationId,
+			appt.SlotId,
+			appt.Duration)
 	}
 }
 
-func bookAppointment(locationId int64, serviceId int64, slotId int64, firstName string, lastName string, email string, phone string) {
+func bookAppointment(locationId, serviceId, slotId int64, firstName, lastName, email, phone string) {
 	client := dmvapi.NewClient()
-	apps, err := client.GetAppointments(int(locationId), int(serviceId))
-	if err != nil {
-		panic(err)
-	}
+	appts, err := client.GetAppointments(int(locationId), int(serviceId))
+	handleError(err, "Failed to get appointments")
 
 	// Find the appointment with the given slot ID
 	var appointment dmvapi.Appointment
-	for _, app := range apps {
-		if app.SlotId == int(slotId) {
-			appointment = app
+	found := false
+
+	for _, appt := range appts {
+		if appt.SlotId == int(slotId) {
+			appointment = appt
+			found = true
 			break
 		}
 	}
 
-	if appointment.SlotId == 0 {
+	if !found {
 		fmt.Println("No appointment found with the given slot ID.")
 		return
 	}
 
-	if err := client.BookAppointment(appointment, firstName, lastName, email, phone); err != nil {
-		panic(err)
-	}
+	err = client.BookAppointment(appointment, firstName, lastName, email, phone)
+	handleError(err, "Failed to book appointment")
 
 	fmt.Println("Appointment booked successfully!")
 }
+
 func main() {
 	var serviceId int64
 	var locationIds []int64
-
 	var locationId int64
 	var slotId int64
-	var firstName string
-	var lastName string
-	var email string
-	var phone string
+	var firstName, lastName, email, phone string
 
 	cmd := &cli.Command{
 		Commands: []*cli.Command{
@@ -203,6 +214,6 @@ func main() {
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		panic(err)
+		handleError(err, "Command failed")
 	}
 }
