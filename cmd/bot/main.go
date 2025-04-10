@@ -211,6 +211,7 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		msg.Text = "Available commands:\n" +
 			"/services - List available services\n" +
 			"/locations <service_id> - List locations for a specific service\n" +
+			"/watch <service_id> <location_id> <within_hours> - Watch for appointments at a specific location\n" +
 			"/help - Show this help message\n"
 	case "echo":
 		// Get arguments after the command
@@ -243,8 +244,8 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			msg.Text = "Please provide a service ID and location ID to watch for appointments."
 		} else {
 			ids := strings.Split(args, " ")
-			if len(ids) != 2 {
-				msg.Text = "Please provide both a service ID and a location ID."
+			if len(ids) < 3 {
+				msg.Text = "Please provide service ID, location ID, and within_hours (e.g., /watch 1 2 24)."
 			} else {
 				serviceId, err := strconv.Atoi(ids[0])
 				if err != nil {
@@ -254,18 +255,22 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 					if err != nil {
 						msg.Text = "Invalid location ID. Please provide a valid number."
 					} else {
+						withinHours, err := strconv.Atoi(ids[2])
+						if err != nil {
+							msg.Text = "Invalid hours value. Please provide a valid number."
+						} else {
+							if watchState != nil {
+								watchState.Stop()
+								watchState = nil
+							}
 
-						if watchState != nil {
-							watchState.Stop()
-							watchState = nil
+							// Create a new watch state
+							// Start watching for appointments
+							withinDuration := time.Duration(withinHours) * time.Hour
+							watchState = NewWatchState(serviceId, []int{locationId}, withinDuration, update.Message.Chat.ID, bot, 20*time.Second)
+							watchState.Start()
+							msg.Text = fmt.Sprintf("Watching for appointments for service ID %d at location ID %d within %d hours.", serviceId, locationId, withinHours)
 						}
-
-						// Create a new watch state
-						// Start watching for appointments
-						withinDuration := 24 * 100 * time.Hour // Set the duration to watch for appointments
-						watchState = NewWatchState(serviceId, []int{locationId}, withinDuration, update.Message.Chat.ID, bot, 20*time.Second)
-						watchState.Start()
-						msg.Text = fmt.Sprintf("Watching for appointments for service ID %d at location ID %d.", serviceId, locationId)
 					}
 				}
 			}
