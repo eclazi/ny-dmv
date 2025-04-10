@@ -213,14 +213,6 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			"/locations <service_id> - List locations for a specific service\n" +
 			"/watch <service_id> <location_id> <within_hours> - Watch for appointments at a specific location\n" +
 			"/help - Show this help message\n"
-	case "echo":
-		// Get arguments after the command
-		args := update.Message.CommandArguments()
-		if args == "" {
-			msg.Text = "Please provide some text to echo."
-		} else {
-			msg.Text = args
-		}
 	case "services":
 		// List available services
 		msg.Text = listServices()
