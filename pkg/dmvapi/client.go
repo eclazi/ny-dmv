@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+	"io"
 )
 
 const (
@@ -95,6 +97,21 @@ func (c *Client) GetAppointments(locationId int, serviceId int) ([]Appointment, 
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+
+		if resp.ContentLength > 0 {
+			reader := strings.Builder{}
+			_, err := io.Copy(&reader, resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("error response: %s", reader.String())
+		}
+
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
 
 	aldr, err := loadResponse[availableLocationDatesResponse](resp.Body)
 	if err != nil {
